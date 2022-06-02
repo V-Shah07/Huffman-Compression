@@ -3,96 +3,66 @@
 #include <ctype.h>
 #include <string.h>
 
-
 #include "C:\Vivaan\important vivi\coding\SR\Visual_Studio\Algorithms\PriorityQueue\PriorityQueue\PriorityQueue.h"
+#include "Header.h"
+
 #pragma warning(disable:4996)
 #define FILENAME "C:\\Users\\hshah\\Desktop\\Data.txt"
 
 
-
-struct info
-{
-	int frequency;
-	char ch;
-	int bitCt;
-};
-struct TreeNode
-{
-	TreeNode* left;
-	TreeNode* right;
-	info value; //int combinedFrequency
-};
-
 int cmpTreeNodes(void* a, void* b)
 {
-	info x = ((TreeNode*)a)->value;
-	info y = ((TreeNode*)b)->value;
-	return x.frequency - y.frequency;
+	TreeNode* x = (TreeNode*)a;
+	TreeNode* y = (TreeNode*)b;
+	
+	return x->information.frequency - y->information.frequency;
 }
-void addTreeNode(TreeNode t, PriorityQueue* q)
-{
-	(*q).add(&t);
-}
+
 int main()
 {
 	FILE* fp = fopen(FILENAME, "r");
 
-	fseek(fp, 0L, SEEK_END);
-	long long fileSize = ftell(fp);
-	fseek(fp, 0L, SEEK_SET);
-
-	int num = 256;
-	TreeNode* nodes = (TreeNode*)calloc(num, sizeof(TreeNode));
-
+	TreeNode nodes[255] = { 0 };
 	int ct = 0;
 	char ch = getc(fp);
-	for (int i = 0; (i < num) && (ch != EOF); i++)
+	for (; ch != EOF; )
 	{
-		if (ch >= num)
+		if (nodes[ch].information.frequency == 0) //has not been counted before
 		{
-			nodes = (TreeNode*)realloc(nodes, num * 2 * sizeof(TreeNode));
-
-			nodes = (TreeNode*)memset(nodes + ch, 0, num * sizeof(TreeNode));
-			num *= 2;
+			nodes[ch].information.ch = ch;
 		}
-		if (nodes[ch].value.frequency == 0) //has not been counted before
-		{
-			nodes[ch].value.ch = ch;
-		}
-		nodes[ch].value.frequency++;
+		nodes[ch].information.frequency++;
 		ch = getc(fp);
 	}
-	PriorityQueue nodesQueue(PriorityQueue::max, sizeof(TreeNode), cmpTreeNodes);
-	for (int i = 0; i < num; ++i)
+	PriorityQueue nodesQueue(PriorityQueue::min, sizeof(TreeNode), cmpTreeNodes);
+	for (int i = 0; i < sizeof(nodes)/sizeof(nodes[0]); ++i)
 	{
-		if (nodes[i].value.frequency != 0) //occurs in data
+		if (nodes[i].information.frequency != 0) //occurs in data
 		{
 			nodesQueue.add(&nodes[i]);
 		}
 	}
 	/*
-	while (nodesQueue.getLength() >= 0)
+	while (nodesQueue.getLength() > 0)
 	{
-		printf("%c %d\n",(*(TreeNode*)nodesQueue.look()).value.ch, (*(TreeNode*)nodesQueue.look()).value.frequency);
+		printf("%c %d\n", ((TreeNode*)nodesQueue.look())->information.ch, ((TreeNode*)nodesQueue.look())->information.frequency);
 		nodesQueue.get();
 	}
 	*/
+	
 	TreeNode treeNode1, treeNode2;
 	TreeNode parentNodes[255] = { 0 }; //stores independent memory locations for every joint node
 	for (int i = 0; nodesQueue.getLength() >= 2 && i < sizeof(parentNodes)/sizeof(TreeNode); i++) //goes through and joins all leaf nodes of letters
 	{
-		printf("Currently %d elements in queue...", nodesQueue.getLength());
-		_sleep(2000);
-		treeNode1 = *(TreeNode*)nodesQueue.get();
-		treeNode2 = *(TreeNode*)nodesQueue.get();
-		parentNodes[i].value.frequency = treeNode1.value.frequency + treeNode2.value.frequency;
+		printf("Currently %d elements in queue...\n", nodesQueue.getLength());
+		parentNodes[i].left = (TreeNode*)nodesQueue.get();
+		parentNodes[i].right = (TreeNode*)nodesQueue.get();
+		parentNodes[i].information.frequency = parentNodes[i].left->information.frequency + parentNodes[i].right->information.frequency;
 		nodesQueue.add(&parentNodes[i]);
-		printf("Added a node that consists of %c-%d and %c-%d\n", treeNode1.value.ch, treeNode1.value.frequency, treeNode2.value.ch, treeNode2.value.frequency);
-		_sleep(2000);
 	}
-	printf("Final node: %c-%d", ((TreeNode*)nodesQueue.look())->value.ch, ((TreeNode*)nodesQueue.look())->value.frequency);
-
-	
-	
-
+	printf("Final node: %c-%d", ((TreeNode*)nodesQueue.look())->information.ch, ((TreeNode*)nodesQueue.look())->information.frequency);
+	int bitCodes[128] = { 0 };
+	assignBitCodes(nodesQueue, bitCodes, sizeof(bitCodes)/sizeof(bitCodes[0]));
+	writeCompression(fp);
+	fclose(fp);
 }
